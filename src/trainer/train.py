@@ -53,13 +53,22 @@ def train(config_path, resume_path=None):
     
     img_size = config['data']['img_size']
 
-    # --- Light Augmentation for Linear Probing ---
-    # Since we freeze backbone, strong aug might be too hard for just a linear layer.
+    # --- Blur-Breaker Augmentation ---
+    # Aggressively augment blur and compression to make the model robust against low-quality fakes.
     train_transform = A.Compose([
         A.Resize(img_size, img_size),
         A.HorizontalFlip(p=0.5),
-        A.CoarseDropout(max_holes=4, max_height=img_size//10, max_width=img_size//10, p=0.2),
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)), # ImageNet stats for DINO
+        
+        # Blur & Noise Injection
+        A.OneOf([
+            A.GaussianBlur(blur_limit=(3, 7), p=1.0),
+            A.MotionBlur(blur_limit=(3, 7), p=1.0),
+            A.GaussNoise(var_limit=(10.0, 50.0), p=1.0),
+        ], p=0.5), # 50% chance to degrade quality
+        
+        A.ImageCompression(quality_lower=30, quality_upper=60, p=0.5),
+        
+        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
     ])
     
