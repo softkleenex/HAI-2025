@@ -4,7 +4,8 @@ import glob
 def run_kaggle():
     # 1. Run Training
     print("🚀 Starting Training (Wrapper Script)...")
-    exit_code = os.system('python src/trainer/train.py --config configs/kaggle_convnext.yaml')
+    # Force PYTHONPATH to current directory
+    exit_code = os.system('PYTHONPATH=. python src/trainer/train.py --config configs/kaggle_convnext.yaml')
     
     if exit_code != 0:
         print("❌ Training Failed!")
