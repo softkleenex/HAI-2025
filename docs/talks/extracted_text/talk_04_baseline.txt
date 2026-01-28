@@ -1,0 +1,413 @@
+HAI( 하이 )! - Hecto AI Challenge : 2025 하 반 기  헥 토  채 용  AI 경진대회
+채 용  | 알 고리 즘  | 헥 토  | 비전  | 딥 페 이 크  | 분 류
+ 상 금  2,600 만  원
+ 2025.12.29 ~ 2026.02.02 09:59 
+ 900 명   종 료까 지  D-28 참 여중
+󰅐 + Google Calendar
+󰀏 󰭦
+[public 0.6] Baseline 코 드  및  insight 공유
+저 작운동
+2025.12.29 22:21 914 조회
+ 12 0 0 0
+public score  기 준   약  0.6  수 준 의   전 처 리   중 심   파 이 프라 인 과   관 련 된   코 드를   공유합니 다 . ( 모 델 은  baseline  모 델 과   동일합니 다 .)
+성 능   자체보 다 는   이   대회의   구조 와   규 칙 을   이 해 했 을   때   어 디 서부터   시 작 하 는   것 이   자연 스 러운 지 에   대한   큰   그 림 을   설계 하 는   참 고 용으 로   봐 주 시 면   좋겠 습니 다 .
+이 번   대회는   공 식   학 습   데 이 터 가   없 고   프 레임   단 위   입 력 과   단 일   모 델   사 용   등   제 약 이   명 확 한   만 큼   모 델   이 전   단계 에서   입 력 을   어 떻 게   정 리 할 지   고 민 하 는   과정 이   중요 하다
+대회안내 데 이 터 코 드  공유 토 크 리 더 보드 팀 제 출
+󰁝
+커 뮤 니 티 대회 학 습 구 독  안내랭 킹 더 보 기 so
+XP 를  획 득 했 어요 !
+겨 울 맞 이 대 박 할 인 보러 가기󰁔 ✕
+고   느 꼈 습니 다 .
+특 히   딥 페 이 크   탐 지 에서는   이 미 지   전체보 다   얼 굴   중 심 으 로   입 력 을   정 리하 는   것 만으 로 도   파 이 프라 인이   훨 씬   안정 됩 니 다 .
+이 미  forgery detection  분야 에   능통 하 신   분 들 이   많 다고   생 각 해   공유 가   조 심 스 럽 지 만 ,
+이   글 과   코 드는   어 디 서부터   시 작해 야   할 지   막막 한   분 들 이   전체   흐 름 을   빠 르 게   파 악 하 는   데   도 움 이   되 었 으면   하 는   마음으 로   올립 니 다 .
+코 드 다 운 로 드
+󰁝
+󰁝
+Pre-processing + Baseline ViT Pipeline
+pre-processing flow
+1. face detecting - Using dlib
+2. landmark detecting - 81개 랜드마크 중 5개 core points 추출
+3. face alignment - SimilarityTransform으로 정렬 후 224x224로 crop
+4. face crop saving - 500개 샘플 전부 저장(crop checking)
+5. ViT model inference - baseling model
+env
+python == 3.9
+dlib (conda install dlib)
+torch == 2.8.0+cu128
+이외 설치는 pip install 활용해 설치 (라이브러리 설치 error는 댓글로 문의.)
+Import
+import os
+import random
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+import cv2
+import dlib
+import torch
+import torch.nn.functional as F
+󰁝
+Settings
+/home/army/miniconda/envs/detector/lib/python3.9/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter 
+and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+ p
+from PIL import Image
+from tqdm import tqdm
+from transformers import ViTForImageClassification, ViTImageProcessor
+from skimage import transform as trans
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+MODEL_ID = "prithivMLmods/Deep-Fake-Detector-v2-Model"
+TEST_DIR = Path("./test_data")
+# Landmark model path
+# Download from: https://huggingface.co/spaces/liangtian/birthdayCrown/blob/main/shape_predictor_81_face_landmarks.dat
+LANDMARK_MODEL_PATH = Path("./preprocessing/shape_predictor_81_face_landmarks.dat")
+# Output directories
+OUTPUT DIR=Path("/output")
+󰁝
+Face Detection & Alignment
+OUTPUT_DIR  Path( ./output )
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# 전 처 리  이 미 지  저 장  여부
+SAVE_CROPS = False  # If you wandt to save cropped face images
+# Cropped faces directory
+CROP_SAVE_DIR = OUTPUT_DIR / "cropped_faces"
+CROP_SAVE_DIR.mkdir(parents=True, exist_ok=True)
+OUT_CSV = OUTPUT_DIR / "submission.csv"
+Device: cuda
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".jfif"}
+VIDEO_EXTS = {".mp4", ".mov"}
+TARGET_SIZE = (224, 224)  # Face crop
+NUM_FRAMES = 10  # 비 디 오  샘 플 링  프 레임  수
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Device: {DEVICE}")
+# Load dlib models
+if not LANDMARK_MODEL_PATH.exists():
+    raise FileNotFoundError(
+        f"Landmark model not found: {LANDMARK_MODEL_PATH}\n"
+"Pleasedownloadshape predictor 81 face landmarksdat"
+󰁝
+Loading dlib face detector and landmark predictor...
+Face detector and landmark predictor loaded.
+        Please download shape_predictor_81_face_landmarks.dat
+    )
+face_detector = dlib.get_frontal_face_detector()
+landmark_predictor = dlib.shape_predictor(str(LANDMARK_MODEL_PATH))
+def get_5_keypoints(image_rgb: np.ndarray, face: dlib.rectangle) -> np.ndarray:
+    """
+    81 개  랜 드마크에서  5 개의  core point 추출
+    - left eye (#37), right eye (#44), nose (#30)
+    - left mouth (#49), right mouth (#55)
+    """
+    shape = landmark_predictor(image_rgb, face)
+    
+    leye = np.array([shape.part(37).x, shape.part(37).y]).reshape(-1, 2)
+    reye = np.array([shape.part(44).x, shape.part(44).y]).reshape(-1, 2)
+    nose = np.array([shape.part(30).x, shape.part(30).y]).reshape(-1, 2)
+    lmouth = np.array([shape.part(49).x, shape.part(49).y]).reshape(-1, 2)
+    rmouth = np.array([shape.part(55).x, shape.part(55).y]).reshape(-1, 2)
+    
+    pts = np.concatenate([leye, reye, nose, lmouth, rmouth], axis=0)
+    return pts
+def align_and_crop_face(img_rgb: np.ndarray, landmarks: np.ndarray, 
+                        outsize: Tuple[int, int] = (224, 224), 
+                        scale: float = 1.3) -> np.ndarray:
+    """
+    5 개  랜 드마크를  사 용 하 여  얼 굴  정 렬  및  crop
+󰁝
+    """
+    target_size = [112, 112]
+    dst = np.array([
+        [30.2946, 51.6963],
+        [65.5318, 51.5014],
+        [48.0252, 71.7366],
+        [33.5493, 92.3655],
+        [62.7299, 92.2041]
+    ], dtype=np.float32)
+    if target_size[1] == 112:
+        dst[:, 0] += 8.0
+    dst[:, 0] = dst[:, 0] * outsize[0] / target_size[0]
+    dst[:, 1] = dst[:, 1] * outsize[1] / target_size[1]
+    target_size = outsize
+    margin_rate = scale - 1
+    x_margin = target_size[0] * margin_rate / 2.
+    y_margin = target_size[1] * margin_rate / 2.
+    dst[:, 0] += x_margin
+    dst[:, 1] += y_margin
+    dst[:, 0] *= target_size[0] / (target_size[0] + 2 * x_margin)
+    dst[:, 1] *= target_size[1] / (target_size[1] + 2 * y_margin)
+    src = landmarks.astype(np.float32)
+    tform = trans.SimilarityTransform()
+    tform.estimate(src, dst)
+    M = tform.params[0:2, :]
+󰁝
+Utils - Frame Extraction
+    aligned = cv2.warpAffine(img_rgb, M, (target_size[1], target_size[0]))
+    
+    if outsize is not None:
+        aligned = cv2.resize(aligned, (outsize[1], outsize[0]))
+    
+    return aligned
+def extract_aligned_face_fast(img_rgb: np.ndarray, res: int = 224, scale: float = 0.8) -> Optional[np.ndarray]:
+    """
+    얼 굴  검출  및  정 렬  ( 축 소 된  이 미 지 에서  검출 )
+    - scale: 이 미 지  축 소  비 율  (0.8 = 80% 크 기로  축 소 ) -> time cost 감 소
+    - 얼 굴 이  없 으면  None 반 환
+    """
+    small = cv2.resize(img_rgb, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    faces = face_detector(small, 1)
+    
+    if len(faces) == 0:
+        return None
+    
+    face = max(faces, key=lambda r: r.width() * r.height())
+    landmarks = get_5_keypoints(small, face)
+    aligned = align_and_crop_face(small, landmarks, outsize=(res, res))
+    
+    return aligned
+def uniform_frame_indices(total_frames: int, num_frames: int) -> np.ndarray:
+    """ 비 디 오  프 레임 을  균 등 하 게  샘 플 링 """
+󰁝
+    if total_frames <= 0:
+        return np.array([], dtype=int)
+    if total_frames <= num_frames:
+        return np.arange(total_frames, dtype=int)
+    return np.linspace(0, total_frames - 1, num_frames, dtype=int)
+def read_rgb_frames(file_path: Path, num_frames: int = NUM_FRAMES) -> List[np.ndarray]:
+    """ 이 미 지  또 는  비 디 오에서  RGB 프 레임  추출 """
+    ext = file_path.suffix.lower()
+    
+    if ext in IMAGE_EXTS:
+        try:
+            img = cv2.imread(str(file_path))
+            if img is None:
+                return []
+            return [cv2.cvtColor(img, cv2.COLOR_BGR2RGB)]
+        except Exception:
+            return []
+    
+    if ext in VIDEO_EXTS:
+        cap = cv2.VideoCapture(str(file_path))
+        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        if total <= 0:
+            cap.release()
+            return []
+        
+        frame_indices = uniform_frame_indices(total, num_frames)
+        frames = []
+        
+        for idx in frame_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(idx))
+ ret frame=capread()
+󰁝
+Data Preprocessing + Face Crop 저장
+            ret, frame = cap.read()
+            if not ret:
+                continue
+            frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        
+        cap.release()
+        return frames
+    
+    return []
+class PreprocessOutput:
+    def __init__(
+        self,
+        filename: str,
+        face_imgs: List[Image.Image],
+        representative_face: Optional[np.ndarray] = None,
+        error: Optional[str] = None
+    ):
+        self.filename = filename
+        self.face_imgs = face_imgs  # PIL Images for inference
+        self.representative_face = representative_face  # representative face save (RGB numpy)
+        self.error = error
+def preprocess_one_with_facecrop(file_path: Path, num_frames: int = NUM_FRAMES) -> PreprocessOutput:
+    """
+    파 일  하 나에  대한  전 처 리  수 행  ( 얼 굴  검출  + crop)
+    - 비 디 오 : 여러  프 레임 에서  얼 굴  검출 , 대 표  1 장  저 장
+    - 이 미 지 : 1 장에서  얼 굴  검출
+ """
+󰁝
+Step 1: Preprocessing & Saving Face Crop
+    """
+    try:
+        frames = read_rgb_frames(file_path, num_frames=num_frames)
+        
+        if not frames:
+            return PreprocessOutput(file_path.name, [], None, "No frames extracted")
+        
+        face_imgs: List[Image.Image] = []
+        representative_face: Optional[np.ndarray] = None
+        
+        for i, rgb in enumerate(frames):
+            aligned_face = extract_aligned_face_fast(rgb, res=224, scale=0.5)
+            
+            if aligned_face is not None:
+                face_imgs.append(Image.fromarray(aligned_face))
+                
+                if representative_face is None:
+                    representative_face = aligned_face
+        
+        if not face_imgs:
+            return PreprocessOutput(file_path.name, [], None, "No face detected")
+        
+        return PreprocessOutput(file_path.name, face_imgs, representative_face, None)
+    
+    except Exception as e:
+        return PreprocessOutput(file_path.name, [], None, str(e))
+files = sorted([p for p in TEST_DIR.iterdir() if p.is_file()])
+print(f"Test data length: {len(files)}")
+󰁝
+Test data length: 500
+Preprocessing: 100%|██████████| 500/500 [09:25<00:00,  1.13s/it]
+Preprocessing completed.
+p g
+if SAVE_CROPS:
+    print(f"Cropped faces will be saved to: {CROP_SAVE_DIR}")
+preprocess_results: Dict[str, PreprocessOutput] = {}
+no_face_files: List[str] = []
+saved_count = 0
+for file_path in tqdm(files, desc="Preprocessing"):
+    out = preprocess_one_with_facecrop(file_path)
+    preprocess_results[out.filename] = out
+    if out.error and "No face" in out.error:
+        no_face_files.append(out.filename)
+    if SAVE_CROPS and out.representative_face is not None:
+        save_name = Path(out.filename).stem + ".jpg"
+        save_path = CROP_SAVE_DIR / save_name
+        cv2.imwrite(
+            str(save_path),
+            cv2.cvtColor(out.representative_face, cv2.COLOR_RGB2BGR)
+        )
+        saved_count += 1
+print("\nPreprocessing completed.")
+󰁝
+Model Load
+'\nif no_face_files:\n    print(f"\n=== Files with no face detected ({len(no_face_files)}) ===")\n    for f in no_face_files[:30]:\n     
+# list of failed files - If you want to see files with no detected faces, uncomment below
+'''
+if no_face_files:
+    print(f"\n=== Files with no face detected ({len(no_face_files)}) ===")
+    for f in no_face_files[:30]:
+        print(f"  - {f}")
+    if len(no_face_files) > 30:
+        print(f"  ... and {len(no_face_files) - 30} more")
+'''
+# results : missing faces data = 16
+Loading model...
+ViTForImageClassification(
+  (vit): ViTModel(
+    (embeddings): ViTEmbeddings(
+      (patch_embeddings): ViTPatchEmbeddings(
+        (projection): Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+print("Loading model...")
+model = ViTForImageClassification.from_pretrained(MODEL_ID).to(DEVICE)
+processor = ViTImageProcessor.from_pretrained(MODEL_ID)
+model.eval()
+󰁝
+      )
+      (dropout): Dropout(p=0.0, inplace=False)
+    )
+    (encoder): ViTEncoder(
+      (layer): ModuleList(
+        (0-11): 12 x ViTLayer(
+          (attention): ViTAttention(
+            (attention): ViTSelfAttention(
+              (query): Linear(in_features=768, out_features=768, bias=True)
+              (key): Linear(in_features=768, out_features=768, bias=True)
+              (value): Linear(in_features=768, out_features=768, bias=True)
+            )
+            (output): ViTSelfOutput(
+              (dense): Linear(in_features=768, out_features=768, bias=True)
+              (dropout): Dropout(p=0.0, inplace=False)
+            )
+          )
+          (intermediate): ViTIntermediate(
+            (dense): Linear(in_features=768, out_features=3072, bias=True)
+            (intermediate_act_fn): GELUActivation()
+          )
+          (output): ViTOutput(
+            (dense): Linear(in_features=3072, out_features=768, bias=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+          )
+          (layernorm_before): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+          (layernorm_after): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+        )
+      )
+    )
+    (layernorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)
+  )
+  (classifier): Linear(in_features=768, out_features=2, bias=True)
+)
+def infer_fake_probs(pil_images: List[Image.Image]) -> List[float]:
+    """PIL 이 미 지  리스 트에  대해  Fake probability 추 론 """
+    if not pil_images:
+ret rn []
+󰁝
+Step 2: Inference
+        return []
+    probs: List[float] = []
+    with torch.inference_mode():
+        inputs = processor(images=pil_images, return_tensors="pt")
+        inputs = {k: v.to(DEVICE, non_blocking=True) for k, v in inputs.items()}
+        logits = model(**inputs).logits
+        batch_probs = F.softmax(logits, dim=1)[:, 1]  # Real probability (id2label: 0=Fake, 1=Real)
+        probs.extend(batch_probs.cpu().tolist())
+    return probs
+Inference: 100%|██████████| 500/500 [00:05<00:00, 89.90it/s] 
+Done.
+results: Dict[str, float] = {}
+for filename, out in tqdm(preprocess_results.items(), desc="Inference"):
+    if out.face_imgs:
+        probs = infer_fake_probs(out.face_imgs)
+        results[filename] = float(np.mean(probs)) if probs else 0.0
+    else:
+        # 얼 굴  검출  실 패  시  0 (Real 로  처 리 ) -> basic logic
+        results[filename] = 0.0
+print("Done.\n")
+󰁝
+댓 글  0 개
+Submission
+Saved submission to: output/submission.csv
+submission = pd.read_csv('./sample_submission.csv')
+submission['prob'] = submission['filename'].map(results).fillna(0.0)
+submission.to_csv(OUT_CSV, encoding='utf-8-sig', index=False)
+print(f"Saved submission to: {OUT_CSV}")
+12 공유 하기
+비전 torch insight DEEPFAKE DETECTIOIN
+sosoftkleenex
+comment
+󰁝
+📣  댓 글  작성  창 의  위치 가  댓 글  리스 트  상 단 으 로  이 동 했 습니 다 !
+ 목 록으 로
+AI 해 커 톤  플 랫 폼 데 이 콘 ( 주 ) | 대 표  김 국 진  | 699-81-01021
+통 신 판매업  신 고 번호 : 제  2021- 서 울 영 등 포 -1704 호
+직업 정보제공 사 업  신 고 번호 : J1204020250004
+서 울 특별 시  영 등 포구  은 행 로  3 익 스 콘벤 처 타 워  901 호
+0 / 1000
+작성
+이 전  글 이 전  글 이  존 재 하지  않 습니 다 .
+현재  글 [public 0.6] Baseline 코 드  및  insight 공유
+대회  - HAI( 하이 )! - Hecto AI Challenge : 2025 하 반 기  헥 토  채 용  AI 경진대회 좋 아요  12 조회  914 댓 글  0 7 일  전
+다 음  글 간 단 하 게  동영상을  frame 로  처 리하 는  방 법 ( 실 시 간으 로  colab 에서  보는  법 )
+대회  - HAI( 하이 )! - Hecto AI Challenge : 2025 하 반 기  헥 토  채 용  AI 경진대회 좋 아요  3 조회  471 댓 글  0 7 일  전
+이 용 약 관
+개 인 정보  처 리 방 침
+대회  주 최  문의
+교 육  문의
+데 이 콘  서비 스  소개
+데 이 콘  채 용
+  한 국 어
+󰁝
+이 메일  dacon@dacon.io | 전화번호 : 070-4102-0545
+Copyright ⓒ  DACON Inc. All rights reserved
+󰁝

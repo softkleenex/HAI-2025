@@ -1,0 +1,28 @@
+project_name: "HAI_2025_EffB5_Recursive"
+experiment_name: "effnet_b5_recursive"
+
+data:
+  train_dir: "data/raw/real_vs_fake/real-vs-fake/train" 
+  val_dir: "data/raw/real_vs_fake/real-vs-fake/valid"
+  test_dir: "data/raw/real_vs_fake/real-vs-fake/test"
+  dacon_test_dir: "data/test"
+  img_size: 224
+  batch_size: 32
+  num_workers: 4
+
+model:
+  backbone: "efficientnet_b5"
+  pretrained: false
+  num_classes: 2
+  dropout: 0.4
+
+train:
+  epochs: 3 # Increase epochs slightly for better adaptation
+  lr: 0.00001
+  weight_decay: 1e-4
+  scheduler: "CosineAnnealingLR"
+  min_lr: 1e-7
+  device: "cuda"
+  seed: 42
+  save_dir: "checkpoints"
+  log_interval: 50

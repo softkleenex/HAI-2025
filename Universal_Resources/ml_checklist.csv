@@ -1,0 +1,16 @@
+Category,Check Item,Status (O/X),Notes
+Data,데이터 경로(Path)가 상대경로/절대경로 설정이 올바른가?,,
+Data,Train/Validation Split시 Stratified 방식이 적용되었는가?,,Class Imbalance 방지
+Data,Data Leakage 점검 (Train 정보가 Valid/Test에 섞이지 않았는가?),,
+Data,이미지/데이터 Normalization (Mean/Std)이 Pretrained 모델과 일치하는가?,,
+Model,Pretrained 가중치 로드 시 `strict=True`로 키 매칭을 확인했는가?,,
+Model,모델의 Input Channel 수와 데이터의 Channel 수가 일치하는가?,,
+Training,Resume 학습 시 Optimizer와 Scheduler 상태도 같이 로드했는가?,,
+Training,Learning Rate가 적절한 범위인가? (너무 크거나 작지 않은가?),,LR Finder 활용 권장
+Training,Batch Size가 GPU 메모리에 적절한가? (OOM 방지),,
+Performance,`num_workers`와 `pin_memory` 설정이 되어있는가?,,
+Performance,Mixed Precision (AMP)이 활성화되어 있는가?,,
+Inference,Inference 모드 전환 (`model.eval()`)이 되어있는가?,,Dropout/Batchnorm 고정
+Inference,Gradient 계산 비활성화 (`with torch.no_grad()`)가 되어있는가?,,메모리/속도 최적화
+Experiment,Random Seed가 고정되어 재현 가능한가?,,
+Experiment,실험 로그(WandB/Tensorboard) 이름이 구별되도록 설정되었는가?,,

@@ -1,0 +1,31 @@
+project_name: "HAI_2025_DINO_Base_FineTune"
+experiment_name: "dino_base_finetune"
+
+data:
+  train_dir: "data/raw/real_vs_fake/real-vs-fake/train"
+  val_dir: "data/raw/real_vs_fake/real-vs-fake/valid"
+  test_dir: "data/raw/real_vs_fake/real-vs-fake/test"
+  dacon_test_dir: "data/test"
+  img_size: 224
+  batch_size: 32
+  num_workers: 4
+
+model:
+  backbone: "dino_v2" # Using 'dino_v2' triggers base model in train.py logic
+  model_name: "facebook/dinov2-base"
+  pretrained: true
+  num_classes: 2
+  dropout: 0.3
+  freeze_backbone: false # Unfreeze!
+
+train:
+  epochs: 10
+  lr: 0.00001 # 1e-5
+  weight_decay: 1e-4
+  scheduler: "CosineAnnealingLR"
+  min_lr: 1e-7
+  device: "cuda"
+  seed: 42
+  save_dir: "checkpoints"
+  log_interval: 100
+  label_smoothing: 0.1

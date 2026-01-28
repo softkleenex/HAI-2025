@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (Keep folder structure but ignore large files)
+data/raw/*
+data/processed/*
+data/test/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/test/.gitkeep
+checkpoints/*
+!checkpoints/.gitkeep
+
+# OS
+.DS_Store
+
+# Logs
+wandb/
+logs/

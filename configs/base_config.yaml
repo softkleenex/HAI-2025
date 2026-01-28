@@ -1,0 +1,29 @@
+project_name: "HAI_2025_DINOv2"
+experiment_name: "dino_v2_linear_probing"
+
+data:
+  train_dir: "data/raw/real_vs_fake/real-vs-fake/train"
+  val_dir: "data/raw/real_vs_fake/real-vs-fake/valid"
+  test_dir: "data/raw/real_vs_fake/real-vs-fake/test"
+  dacon_test_dir: "data/test"
+  img_size: 224 # DINOv2 likes 224 or 518
+  batch_size: 32
+  num_workers: 4
+
+model:
+  backbone: "dino_v2" 
+  pretrained: true
+  num_classes: 2
+  dropout: 0.3
+
+train:
+  epochs: 5
+  lr: 0.001
+  weight_decay: 1e-4
+  scheduler: "CosineAnnealingLR"
+  min_lr: 1e-6
+  device: "cuda"
+  seed: 42
+  save_dir: "checkpoints"
+  log_interval: 100
+  label_smoothing: 0.0

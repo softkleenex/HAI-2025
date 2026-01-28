@@ -1,0 +1,14 @@
+project_name: "HAI_2025_Kaggle_Inference"
+experiment_name: "effnet_b5_inference"
+
+data:
+  # Inference script uses 'data/processed/test' by default
+  img_size: 224
+  batch_size: 32 # EfficientNet-B5 fits on RTX 4060 easily
+  num_workers: 4
+
+model:
+  backbone: "efficientnet_b5"
+  pretrained: false # Loading from checkpoint
+  num_classes: 2
+  dropout: 0.0 # Inference mode

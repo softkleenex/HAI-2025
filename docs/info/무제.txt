@@ -1,0 +1,3 @@
+대회 설명 url https://dacon.io/competitions/official/236628/overview/description
+
+데이터 다운로드 url https://cfiles.dacon.co.kr/competitions/236628/open.zip

@@ -1,0 +1,33 @@
+project_name: "HAI_2025_DINO_Large"
+experiment_name: "dino_large_strict"
+
+data:
+  train_dir: "data/raw/real_vs_fake/real-vs-fake/train"
+  val_dir: "data/raw/real_vs_fake/real-vs-fake/valid"
+  test_dir: "data/raw/real_vs_fake/real-vs-fake/test"
+  dacon_test_dir: "data/test"
+  img_size: 224
+  batch_size: 4 # Reduced further to 4 to prevent OOM
+  gradient_accumulation_steps: 4 # Accumulate 4 steps (4x4=16 effective batch)
+  num_workers: 4
+
+model:
+  backbone: "dino_v2_large" # Custom keyword for train.py
+  model_name: "facebook/dinov2-large" # Real HF name
+  pretrained: true
+  num_classes: 2
+  dropout: 0.4
+  freeze_backbone: false # Fine-tuning!
+
+train:
+  epochs: 3
+  lr: 0.00001 # 1e-5 for fine-tuning
+  weight_decay: 1e-4
+  scheduler: "CosineAnnealingLR"
+  min_lr: 1e-7
+  device: "cuda"
+  seed: 42
+  save_dir: "checkpoints"
+  log_interval: 100
+  label_smoothing: 0.1
+  gradient_accumulation_steps: 2
