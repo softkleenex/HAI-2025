@@ -90,9 +90,16 @@ def train(config_path, resume_path=None):
     # --- Pseudo Labeling Injection ---
     pseudo_csv = 'data/pseudo_train.csv'
     if os.path.exists(pseudo_csv):
-        print(f"Adding Pseudo-Label Dataset from {pseudo_csv}")
-        pseudo_dataset = PseudoLabelDataset(pseudo_csv, transform=train_transform)
-        train_dataset = ConcatDataset([train_dataset, pseudo_dataset])
+        # Check if paths are valid for current environment
+        df = pd.read_csv(pseudo_csv)
+        sample_path = df.iloc[0]['path']
+        if os.path.exists(sample_path):
+            print(f"Adding Pseudo-Label Dataset from {pseudo_csv}")
+            pseudo_dataset = PseudoLabelDataset(pseudo_csv, transform=train_transform)
+            train_dataset = ConcatDataset([train_dataset, pseudo_dataset])
+        else:
+            print(f"⚠️ Skipping Pseudo Labels: Paths in CSV (e.g., {sample_path}) do not exist in this environment.")
+            
     else:
         print("No pseudo-label data found.")
         
@@ -100,6 +107,10 @@ def train(config_path, resume_path=None):
 
     print(f"[TRAIN] Total images: {len(train_dataset)}")
     print(f"[VAL] Total images: {len(val_dataset)}")
+    
+    if len(val_dataset) == 0:
+        print("❌ Error: Validation dataset is empty! Check 'val_dir' in config.")
+        return # Stop training
 
     train_loader = DataLoader(train_dataset, batch_size=config['data']['batch_size'], 
                               shuffle=True, num_workers=config['data']['num_workers'], pin_memory=True)
