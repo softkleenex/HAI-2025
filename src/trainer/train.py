@@ -13,8 +13,14 @@ import pandas as pd
 import cv2
 
 from src.models.model import DeepFakeClassifier
-from src.models.vit_baseline import DeepFakeViT
-from src.models.dino import DeepFakeDINOv2 # Import DINO
+try:
+    from src.models.vit_baseline import DeepFakeViT
+    from src.models.dino import DeepFakeDINOv2
+except ImportError:
+    print("⚠️ Warning: Could not import ViT/DINO modules. (Transformers library issue?)")
+    DeepFakeViT = None
+    DeepFakeDINOv2 = None
+
 from src.data.dataset import DeepFakeDataset
 
 class PseudoLabelDataset(Dataset):
