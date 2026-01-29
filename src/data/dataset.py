@@ -42,30 +42,51 @@ class DeepFakeDataset(Dataset):
             all_files = glob.glob(os.path.join(target_dir, '**', '*.jpg'), recursive=True)
             all_files += glob.glob(os.path.join(target_dir, '**', '*.png'), recursive=True)
             
-            # 3. Label Assignment
+            # 3. Label Assignment (Strict)
             for f in all_files:
-                lower_path = f.lower().replace('\\', '/')
-                # Robust label logic
-                if 'real' in lower_path and 'fake' not in lower_path.split('/')[-1]: 
-                    label = 0
-                    real_count += 1
-                elif 'fake' in lower_path:
-                    label = 1
-                    fake_count += 1
-                elif 'youtube' in lower_path: # Celeb-DF real structure often uses 'YouTube-real'
-                    label = 0
-                    real_count += 1
-                elif 'celeb' in lower_path and 'real' in lower_path: # Celeb-real
-                    label = 0
-                    real_count += 1
-                elif 'celeb' in lower_path and 'synthesis' in lower_path: # Celeb-synthesis (fake)
-                    label = 1
-                    fake_count += 1
-                else:
-                    continue 
+                parts = f.replace('\\', '/').split('/')
+                parent = parts[-2].lower()
+                grandparent = parts[-3].lower() if len(parts) > 2 else ""
                 
-                self.image_paths.append(f)
-                self.labels.append(label)
+                label = None
+                
+                # Check immediate parent or grandparent for keywords
+                # FF++ / 140k structure: .../real/0001.jpg OR .../real-vs-fake/real/0001.jpg
+                if parent == 'real' or parent == '0':
+                    label = 0
+                elif parent == 'fake' or parent == '1':
+                    label = 1
+                
+                # Celeb-DF structure: .../Celeb-real/id0/video.mp4 (frames)
+                elif 'cele' in parent and 'real' in parent:
+                    label = 0
+                elif 'cele' in parent and 'synthesis' in parent: # Celeb-synthesis
+                    label = 1
+                elif 'youtube' in parent and 'real' in parent: # YouTube-real
+                    label = 0
+                
+                # Grandparent check (if images are in video folders)
+                elif parent.startswith('id') or parent.isdigit(): # .../Celeb-real/id0/frame.jpg
+                    if 'real' in grandparent and 'fake' not in grandparent:
+                        label = 0
+                    elif 'fake' in grandparent or 'synthesis' in grandparent:
+                        label = 1
+                    elif 'youtube' in grandparent:
+                        label = 0
+                
+                if label is None:
+                    # Fallback: Look for specific keywords in the full path relative to root
+                    rel_path = os.path.relpath(f, root).lower().replace('\\', '/')
+                    if '/real/' in rel_path or '/0/' in rel_path:
+                        label = 0
+                    elif '/fake/' in rel_path or '/1/' in rel_path:
+                        label = 1
+                
+                if label is not None:
+                    self.image_paths.append(f)
+                    self.labels.append(label)
+                    if label == 0: real_count += 1
+                    else: fake_count += 1
             
         print(f"[{mode.upper()}] Total Loaded {len(self.image_paths)} images (Real: {real_count}, Fake: {fake_count})")
 
