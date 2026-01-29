@@ -1,0 +1,30 @@
+project_name: "HAI_Kaggle_CelebDF"
+experiment_name: "convnext_generalist"
+
+data:
+  # Kaggle paths (List)
+  train_dir: 
+    - "/kaggle/input/140k-real-and-fake-faces/real_vs_fake/real-vs-fake"
+    - "/kaggle/input/celeb-df-v2/Celeb-DF-v2" # Verify this path in Kaggle
+  val_dir: 
+    - "/kaggle/input/140k-real-and-fake-faces/real_vs_fake/real-vs-fake"
+    # Celeb-DF usually doesn't have a split, we use train as val or just FF++ val
+  img_size: 224
+  batch_size: 32
+  num_workers: 2
+
+model:
+  backbone: "convnext_base"
+  pretrained: true
+  num_classes: 2
+  dropout: 0.4
+
+train:
+  epochs: 5 # 5 epochs is enough for fine-tuning on combined data
+  lr: 0.00005 # Lower LR
+  weight_decay: 1e-4
+  scheduler: "CosineAnnealingLR"
+  min_lr: 1e-6
+  device: "cuda"
+  save_dir: "checkpoints"
+  log_interval: 100
