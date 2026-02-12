@@ -63,7 +63,7 @@ def inference(config_path, checkpoint_path, output_csv, aggregation='mean', tta=
     # TTA Transforms (List of compositions)
     tta_transforms = []
     if tta:
-        print("🔥 Test Time Augmentation (TTA) Enabled!")
+        print("🔥 Test Time Augmentation (TTA) Enabled! (Flip + Blur + Sharpen)")
         # 1. Original
         tta_transforms.append(base_transform)
         # 2. Horizontal Flip
@@ -73,11 +73,24 @@ def inference(config_path, checkpoint_path, output_csv, aggregation='mean', tta=
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ToTensorV2()
         ]))
-        # 3. Vertical Flip (Video often has vertical artifacts?) - Maybe not for face.
-        # Let's try slight Zoom/Crop instead.
+        # 3. Sharpen (Check if blur was the cue)
         tta_transforms.append(A.Compose([
-            A.Resize(int(img_size*1.1), int(img_size*1.1)),
-            A.CenterCrop(img_size, img_size),
+            A.Resize(img_size, img_size),
+            A.Sharpen(alpha=(0.2, 0.5), lightness=(0.5, 1.0), p=1.0),
+            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ToTensorV2()
+        ]))
+        # 4. Blur (Check sensitivity to blur)
+        tta_transforms.append(A.Compose([
+            A.Resize(img_size, img_size),
+            A.GaussianBlur(blur_limit=(3, 5), p=1.0),
+            A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ToTensorV2()
+        ]))
+        # 5. Compression (Robustness test)
+        tta_transforms.append(A.Compose([
+            A.Resize(img_size, img_size),
+            A.ImageCompression(quality_lower=60, quality_upper=80, p=1.0),
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ToTensorV2()
         ]))

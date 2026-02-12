@@ -1,0 +1,8 @@
+{
+"track_id": "external_data_injection_20260130",
+"type": "feature",
+"status": "new",
+"created_at": "2026-01-30T01:05:00Z",
+"updated_at": "2026-01-30T01:05:00Z",
+"description": "Integrate External High-Quality Deepfake Dataset (Celeb-DF) to generalize model features."
+}

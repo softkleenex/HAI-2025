@@ -1,4 +1,11 @@
 ID,Date,File Name,Score,Model,Note,Report Path
+1410030,2026-02-12 18:26:05,final_ensemble_v17.csv,0.7124740048,"Ensemble (DINO 10x + Video Model + EffB5)","Video Model (CNN+LSTM) reduced score. Temporal features might not be key.","-"
+1400885,2026-01-31 16:27:51,submission_convnext_celeb_fixed.csv,0.5931186869,"ConvNeXt Celeb Single","Single model weak.","-"
+1400884,2026-01-31 16:27:19,submission_effnet_b5_recursive_fixed.csv,0.6019385027,"EffB5 Recursive Single","Overfitted.","-"
+1400883,2026-01-31 16:26:49,submission_dino_10x_pseudo_fixed.csv,0.7077762923,"DINO 10x Pseudo Single","Strongest Single Model.","-"
+1400879,2026-01-31 16:19:32,final_ensemble_v16.csv,0.7067921866,"Ensemble V16 (Celeb Injection)","Celeb-DF didn't help.","docs/submission_reports/report_v16.md"
+1400759,2026-01-31 03:16:03,final_ensemble_v15_fixed.csv,0.7193813131,"Ensemble (DINO 0.5 + ConvNeXt 0.3 + EffB5 0.2)","ConvNeXt Clean (FF++) didn't help much.","-"
+1400051,2026-01-30 00:55:07,final_ensemble_v15.csv,0.7193441771,"Ensemble (DINO 0.5 + ConvNeXt 0.3 + EffB5 0.2)","⚠️ FAILED: ConvNeXt output was all zeros.","-"
 1399135,2026-01-28 15:31:46,final_ensemble_v14.csv,0.7102644088,"Ensemble (DINO 10x + EffB5 Recursive + ViT)","Score dropped. Recursive Pseudo-labeling caused overfitting.","-"
 1397037,2026-01-24 16:41:24,final_ensemble_v13.csv,0.7101530006,"Ensemble (DINO 0.45 + EffB5 0.45 + ViT 0.1)","Score dropped compared to V10. DINO is better than EffB5.","docs/submission_reports/report_v10_v13.md"
 1397026,2026-01-24 16:02:22,final_ensemble_v11.csv,0.7027443553,"Ensemble (DINO 10x + EffB5 Recursive)","Score dropped. Pure Pseudo lacks diversity.","docs/submission_reports/report_v10_v13.md"

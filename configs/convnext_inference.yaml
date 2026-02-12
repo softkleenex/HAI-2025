@@ -1,0 +1,11 @@
+project_name: "HAI_2025_Inference"
+experiment_name: "convnext_inference"
+
+data:
+  img_size: 224
+  
+model:
+  backbone: "convnext_base"
+  pretrained: false
+  num_classes: 2
+  dropout: 0.0
