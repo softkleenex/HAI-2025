@@ -32,3 +32,4 @@ data/submission/*.csv
 docs/info/extracted_text/*.txt
 docs/reference/*.txt
 docs/info/*.txt
+kaggle.json
