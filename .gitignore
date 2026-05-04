@@ -27,3 +27,4 @@ checkpoints/*
 # Logs
 wandb/
 logs/
+data/pseudo*.csv\ndata/submission/*.csv\ndocs/info/extracted_text/*.txt\ndocs/reference/*.txt\ndocs/info/*.txt
