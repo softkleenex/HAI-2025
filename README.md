@@ -115,3 +115,11 @@ python src/trainer/inference.py --config configs/dino_large.yaml --checkpoint ch
 # Combine predictions
 python scripts/ensemble.py --inputs sub1.csv sub2.csv --weights 0.5 0.5 --output final.csv
 ```
+
+<!-- BLOG-URL:START -->
+
+## Blog
+
+- Blog note: [🕵️‍♂️ HAI 2025 Deepfake Detection Challenge](https://softkleenex.github.io/coding_training/kaggle/kaggle-hai-2025)
+
+<!-- BLOG-URL:END -->
