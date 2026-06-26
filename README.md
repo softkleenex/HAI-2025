@@ -120,6 +120,6 @@ python scripts/ensemble.py --inputs sub1.csv sub2.csv --weights 0.5 0.5 --output
 
 ## Blog
 
-- Blog note: [🕵️‍♂️ HAI 2025 Deepfake Detection Challenge](https://softkleenex.github.io/coding_training/kaggle/kaggle-hai-2025)
+- Blog note: [DACON HAI 2025 Deepfake Detection 회고](https://softkleenex.github.io/coding_training/dacon/dacon-hai-2025)
 
 <!-- BLOG-URL:END -->
